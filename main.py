@@ -142,17 +142,20 @@ def show_pods():
     print(tabulate(table, headers))
 
 
-kubectl = Executor("kubectl")
-
 node_dict = {}
 pod_dict = {}
-
-load_nodes()
-load_pods()
-
-show_nodes()
-show_pods()
+kubectl = Executor("kubectl")
 
 
+def main():
+    load_nodes()
+    load_pods()
+
+    show_nodes()
+    show_pods()
+
+
+if __name__ == "__main__":
+    main()
 
 
