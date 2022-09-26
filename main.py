@@ -25,7 +25,7 @@ def load_nodes():
 
 
 def load_pods():
-    pods = json.loads(kubectl.run("get pod -o json"))
+    pods = json.loads(kubectl.run("get pod -A -o json"))
     for item in pods["items"]:
         metadata = item["metadata"]
         name = metadata["name"]
@@ -33,29 +33,51 @@ def load_pods():
         spec = item["spec"]
         node_name = spec["nodeName"]
 
+        status = item.get("status")
+        if "Running" not in status.get("phase"):
+            continue
+
         pod = Pod(namespace, name, node_name)
         pod_dict[pod.id] = pod
 
         node = node_dict[node_name]
         node.add_pod(pod)
 
+        top_containers = {}
         top = json.loads(kubectl.run(f"get --raw /apis/metrics.k8s.io/v1beta1/namespaces/{namespace}/pods/{name}"))
+
+        for container_json in top["containers"]:
+            container_name = container_json["name"]
+            top_containers[container_name] = container_json["usage"]
 
         for container_json in spec["containers"]:
             container_name = container_json["name"]
 
-            resources = container_json["resources"]
-            limits = resources["limits"]
-            cpu_limits = limits["cpu"]
-            memory_limits = limits["memory"]
+            usage = top_containers[container_name]
+            cpu_usage = usage["cpu"]
+            memory_usage = usage["memory"]
 
-            requests = resources["requests"]
-            cpu_requests = requests["cpu"]
-            memory_requests = requests["memory"]
+            resources = container_json.get("resources")
 
-            requests = Resource(cpu_requests, memory_requests)
-            limits = Resource(cpu_limits, memory_limits)
-            container = Container(name, requests, limits)
+            cpu_limits = 0
+            memory_limits = 0
+            if "limits" in resources:
+                limits = resources.get("limits")
+                cpu_limits = limits.get("cpu")
+                memory_limits = limits.get("memory")
+
+            cpu_requests = 0
+            memory_requests = 0
+            if "requests" in resources:
+                requests = resources.get("requests")
+                cpu_requests = requests.get("cpu")
+                memory_requests = requests.get("memory")
+
+            res_usage = Resource(cpu_usage, memory_usage)
+            res_requests = Resource(cpu_requests, memory_requests)
+            res_limits = Resource(cpu_limits, memory_limits)
+            container = Container(container_name, res_usage, res_requests, res_limits)
+
             pod.add_container(container)
 
 
@@ -108,10 +130,10 @@ def show_pods():
             pod.node_name,
             pod.namespace,
             pod.name,
-            pod.get_cpu_utilization(),
+            pod.get_resource_utilization().get_cpu(),
             pod.get_resource_requests().get_cpu(),
             pod.get_resource_limits().get_cpu(),
-            pod.get_memory_utilization(),
+            pod.get_resource_utilization().get_memory(),
             pod.get_resource_requests().get_memory(),
             pod.get_resource_limits().get_memory()
         ]
@@ -128,6 +150,9 @@ pod_dict = {}
 load_nodes()
 load_pods()
 
+show_nodes()
 show_pods()
+
+
 
 

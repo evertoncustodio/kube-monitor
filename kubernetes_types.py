@@ -7,15 +7,30 @@ class Resource:
         return f"CPU: {self.cpu}; Memory: {self.memory}"
 
     def get_cpu(self):
-        return int(str(self.cpu).split("m")[0])
+        if self.cpu is None:
+            return 0
+        elif "m" in str(self.cpu):
+            return int(str(self.cpu).split("m")[0])
+        elif "n" in str(self.cpu):
+            return int(str(self.cpu).split("n")[0]) / 1000 / 1000
+        else:
+            return int(self.cpu)
 
     def get_memory(self):
-        return int(str(self.memory).split("Mi")[0])
+        if self.memory is None:
+            return 0
+        elif "Ki" in str(self.memory):
+            return int(int(str(self.memory).split("Ki")[0]) / 1000)
+        elif "Mi" in str(self.memory):
+            return int(str(self.memory).split("Mi")[0])
+        else:
+            return int(self.memory)
 
 
 class Container:
-    def __init__(self, name, requests, limits):
+    def __init__(self, name, usage, requests, limits):
         self.name = name
+        self.usage = usage
         self.requests = requests
         self.limits = limits
 
@@ -52,11 +67,16 @@ class Pod:
 
         return info
 
-    def get_cpu_utilization(self):
-        return 0
+    def get_resource_utilization(self):
+        cpu = 0
+        memory = 0
 
-    def get_memory_utilization(self):
-        return 0
+        for name in self.containers:
+            container = self.containers[name]
+            cpu += container.usage.get_cpu()
+            memory += container.usage.get_memory()
+
+        return Resource(cpu, memory)
 
     def get_resource_limits(self):
         cpu = 0
