@@ -1,3 +1,4 @@
+import argument
 from pyexecutor import Executor
 from kubernetes_types import Resource, Container, Pod, Node
 from tabulate import tabulate
@@ -81,7 +82,7 @@ def load_pods():
             pod.add_container(container)
 
 
-def show_nodes():
+def show_nodes(node_name):
     headers = [
         "Name",
         "CPU Util(%)",
@@ -94,6 +95,9 @@ def show_nodes():
 
     table = []
     for n in node_dict:
+        if node_name != '' and node_name not in str(n):
+            continue
+
         node = node_dict[n]
         line = [
             node.name,
@@ -146,12 +150,18 @@ node_dict = {}
 pod_dict = {}
 kubectl = Executor("kubectl")
 
+f = argument.Arguments()
+f.option("node", "", help="node name", abbr="nd")
+f.option("namespace", "", help="namespace", abbr="ns")
+
 
 def main():
+    arguments, errors = f.parse()
+
     load_nodes()
     load_pods()
 
-    show_nodes()
+    show_nodes(arguments["node"])
     show_pods()
 
 
