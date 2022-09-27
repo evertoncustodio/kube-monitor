@@ -113,7 +113,7 @@ def show_nodes(node_name):
     print(tabulate(table, headers))
 
 
-def show_pods():
+def show_pods(node):
     headers = [
         "Node",
         "Namespace",
@@ -129,6 +129,9 @@ def show_pods():
     table = []
     for p in pod_dict:
         pod = pod_dict[p]
+
+        if node != "" and node not in pod.node_name:
+            continue
 
         line = [
             pod.node_name,
@@ -157,12 +160,13 @@ f.option("namespace", "", help="namespace", abbr="ns")
 
 def main():
     arguments, errors = f.parse()
+    node = arguments["node"]
 
     load_nodes()
     load_pods()
 
-    show_nodes(arguments["node"])
-    show_pods()
+    show_nodes(node)
+    show_pods(node)
 
 
 if __name__ == "__main__":
