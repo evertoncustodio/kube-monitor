@@ -1,3 +1,5 @@
+import logging
+
 import argument
 from pyexecutor import Executor
 from tabulate import tabulate
@@ -354,7 +356,10 @@ def show_pods(node, namespace):
 
 node_dict = {}
 pod_dict = {}
-kubectl = Executor("kubectl")
+
+log = logging.getLogger()
+log.setLevel(logging.FATAL)
+kubectl = Executor("kubectl", logger=log)
 
 f = argument.Arguments()
 f.option("node", "", help="node name", abbr="nd")
